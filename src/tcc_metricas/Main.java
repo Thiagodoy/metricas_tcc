@@ -12,11 +12,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 @SuppressWarnings("unused")
 public class Main {
 
+	static SqliteProvider provider;
+	
+	static{
+		 provider = new SqliteProvider();
+	} 
 	public static void main(String[] args) {		
 		// TODO Auto-generated method stub
 
@@ -27,28 +33,85 @@ public class Main {
 //		
 		//generateMediaExperimentos("");
 		//generateMatriz(3, 2);
-		generateCombinacoes();
-		geraQns(fatores,new long[8][3]);
+		//generateCombinacoes(fatores);
+		geraQns(fatores, generateMatriz(3, 2));
 		
 	}
 	
 	private static void geraQns(String[] fatores, long[][] matriz){
 		
-		for (int i = 0; i < fatores.length; i++) {
-			for (int linha = 0; linha < matriz.length; linha++) {
-				for (int coluna = 0; coluna < matriz[0].length; coluna++) {
-					
-				}
+		List<List<String>> combinacoes =  generateCombinacoes(fatores);		
+		Map<String,VariaveisResposta>mapVariaveisRespostasMedias = new TreeMap<>();
+		
+		try {
+			
+			String query ="select experimento, tempo, processamento, memoria from media_variaveis_resposta where etapa = ':etapa'";
+			Map<String,String> parameters = new HashMap<>();
+			parameters.put(":etapa", "SQLITE");
+			ResultSet resultSet = provider.executeQuery(replaceParameters(new StringBuilder(query), parameters));			
+			
+			while(resultSet.next()){				
+					mapVariaveisRespostasMedias.put(resultSet.getString(1), new VariaveisResposta(resultSet.getDouble(3), resultSet.getDouble(4), resultSet.getLong(2)));	
 			}
+			provider.closeConnection();
 			
 			
-			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		
 		
 		
-	} 
-	private static void generateMatriz(int fatores, int niveis){
+		Map<String,Double>tempo = new TreeMap<>();
+		Map<String,Double>processamento = new TreeMap<>();
+		Map<String,Double>memoria = new TreeMap<>();
+		
+		for (String key : mapVariaveisRespostasMedias.keySet()) {
+			
+			int index = Integer.parseInt(key.substring(1));
+			for (List<String> list : combinacoes) {//[[A], [B], [C], [A, B], [A, C], [B, C], [A, B, C]]
+				
+				if(list.size() == 1){
+					int indexFator1 = Arrays.asList(fatores).indexOf(list.get(0));				
+					tempo.put(list.get(0) + " - "+ key +" - tempo" , (double) (matriz[index - 1][indexFator1] * mapVariaveisRespostasMedias.get(key).getTempo()) );
+					memoria.put(list.get(0) + " - "+ key +" - memoria" , matriz[index - 1][indexFator1] * mapVariaveisRespostasMedias.get(key).getMemoria() );
+					processamento.put(list.get(0) + " - "+ key +" - processamento" , matriz[index - 1][indexFator1] * mapVariaveisRespostasMedias.get(key).getProcessamento() );
+					
+					
+				}
+				if(list.size() == 2){
+					int indexFator1 = Arrays.asList(fatores).indexOf(list.get(0));
+					int indexFator2 = Arrays.asList(fatores).indexOf(list.get(1));
+					
+					String keyNew = list.get(0) + list.get(1) + " - " + key; 
+					tempo.put(keyNew + " - tempo" , (double) (matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2]  * mapVariaveisRespostasMedias.get(key).getTempo()) );
+					memoria.put(keyNew + " - memoria" , matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * mapVariaveisRespostasMedias.get(key).getMemoria() );
+					processamento.put(keyNew + " - processamento" , matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * mapVariaveisRespostasMedias.get(key).getProcessamento() );
+					
+				}
+				if(list.size() == 3){
+					int indexFator1 = Arrays.asList(fatores).indexOf(list.get(0));
+					int indexFator2 = Arrays.asList(fatores).indexOf(list.get(1));
+					int indexFator3 = Arrays.asList(fatores).indexOf(list.get(2));
+					
+					String keyNew = list.get(0) + list.get(1) + list.get(2) + " - " + key;					
+					
+					tempo.put(keyNew + " - tempo" , (double) (matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * matriz[index + 1][indexFator3]  * mapVariaveisRespostasMedias.get(key).getTempo()) );
+					memoria.put(keyNew + " - memoria" , matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * matriz[index + 1][indexFator3] * mapVariaveisRespostasMedias.get(key).getMemoria() );
+					processamento.put(keyNew + " - processamento" , matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * matriz[index + 1][indexFator3] * mapVariaveisRespostasMedias.get(key).getProcessamento() );
+					
+				}
+			}		
+			
+		}
+		
+		System.out.println(tempo);
+		System.out.println(processamento);
+		System.out.println(memoria);
+	}	
+	
+	private static long[][]  generateMatriz(int fatores, int niveis){
 		
 		long [][] matrizRegressao = new long[(int) Math.pow(niveis,fatores)][fatores];
 		
@@ -76,17 +139,17 @@ public class Main {
 							 if(count == 0)
 								 count = - (long) Math.abs((linhas/4));
 							 
-							 print(linhas, colunas, matrizRegressao);
+							
 						 }else if(count <= 0){
 							 matrizRegressao[i][c] = -1;
 							 ++count;
 							 if(count == 0)
 								 count = (long) Math.abs((linhas/4));
 							 
-							 print(linhas, colunas, matrizRegressao);
+							
 						 }
 					}
-					 print(linhas, colunas, matrizRegressao);
+					
 					continue y; 
 					
 				 }
@@ -100,14 +163,14 @@ public class Main {
 							 if(count == 0)
 								 count = - (long) Math.abs((linhas/6));
 							 
-							 print(linhas, colunas, matrizRegressao);
+							
 						 }else if(count <= 0){
 							 matrizRegressao[i][c] = -1;
 							 ++count;
 							 if(count == 0)
 								 count = (long) Math.abs((linhas/6));
 							 
-							 print(linhas, colunas, matrizRegressao);
+							
 						 }
 					}
 					 print(linhas, colunas, matrizRegressao);
@@ -115,6 +178,8 @@ public class Main {
 				 }
 			}	
 		}
+		
+		return matrizRegressao;
 		
 	}
 	
@@ -125,9 +190,7 @@ public class Main {
 			for (int j = 0; j < colunas; j++) {
 				System.out.print(matrizRegressao[i][j] + " ");
 			}
-		}
-		System.out.println("");
-		System.out.println("------------------------");
+		}		
 	} 
 	
 	
@@ -137,47 +200,57 @@ public class Main {
 		StringBuilder query2 = new StringBuilder();
 		StringBuilder query3 = new StringBuilder();
 		
-		query.append("select experimento, quantidade, tipo, etapa, plataforma, avg(tempo) as \"tempo(ms)\", min(time_inicio),min(time_fim)  from EXPERIMENTOS group by experimento, quantidade, tipo, etapa, plataforma;");
+		query.append("select experimento, quantidade, tipo, etapa, plataforma, avg(tempo) as \"tempo(ms)\", min(time_inicio),max(time_fim)  from EXPERIMENTOS group by experimento, quantidade, tipo, etapa, plataforma;");
 		query2.append("select avg(app_cpu_usado) as processamento,avg(memoria_usada_kb) as memoria from variaveis_resposta where time >= :inicio and time <= :fim and plataforma = ':plataforma'");		
-		query3.append("INSERT INTO MEDIA_VARIAVEIS_RESPOSTAS VALUES (':experimento',:tempo,:processamento,:memoria,':etapa',':plataforma')");
+		query3.append("INSERT INTO MEDIA_VARIAVEIS_RESPOSTA VALUES (':experimento',:tempo,:processamento,:memoria,':etapa',':plataforma');");
 		
-		SqliteProvider provider = new SqliteProvider();
+		
 		try {
+			
+			
+			List<Experimento> listExperimentos = new ArrayList<>();
+			
+			
 			
 			ResultSet result = provider.executeQuery(query.toString());
 			
 			while(result.next()){
+				listExperimentos.add(new Experimento(result.getString(1), result.getLong(2), result.getString(3), result.getString(4), result.getString(5), result.getLong(6), result.getLong(7), result.getLong(8)));
+			}			
+			provider.closeConnection();
+			
+			for (Experimento experimento : listExperimentos) {
 				
-				Map parameters = new HashMap<>();
-				parameters.put(":inicio", "" + result.getLong(7));
-				parameters.put(":fim", "" + result.getLong(8));
-				parameters.put(":plataforma",result.getString(5));		
+				Map<String,String> parameters = new HashMap<>();
+				parameters.put(":inicio", "" + experimento.getMinTempo());
+				parameters.put(":fim", "" + experimento.getMaxTempo());
+				parameters.put(":plataforma",experimento.getPlataforma());	
 				
-				ResultSet result2 = provider.executeQuery(replaceParameters(query2, parameters));
-				
-				while(result2.next()){				
-					
-					Map<String,String> parameters2 = new HashMap<>();
-					parameters2.put(":experimento", "" + result.getString(1));
-					parameters2.put(":tempo", "" + result.getLong(6));
-					parameters2.put(":processamento", "" + result2.getDouble(1));
-					parameters2.put(":memoria", "" + result2.getDouble(2));
-					parameters2.put(":etapa", result.getString(4));
-					parameters2.put(":plataforma", result.getString(5));
-					
-					//PERSISTE MEDIA_VARIAVEIS_RESPOSTA
-					provider.execute(replaceParameters(query3, parameters2));	
-					
-					
+				ResultSet resultSet = provider.executeQuery(replaceParameters(query2, parameters));
+				List<VariaveisResposta> listVariavesResposta = new ArrayList<>();
+				while(resultSet.next()){
+					listVariavesResposta.add(new VariaveisResposta(resultSet.getDouble(1), resultSet.getDouble(2),experimento.getTempo()));
 				}
-				
-				
-				
+				experimento.setListVariaveisResposta(listVariavesResposta);
+				provider.closeConnection();
 			}
 			
+			for (Experimento experimento : listExperimentos) {
+				
+				Map<String,String> parameters2 = new HashMap<>();
+				parameters2.put(":experimento", "" + experimento.getExperimento());
+				parameters2.put(":tempo", "" + experimento.getTempo());
+				parameters2.put(":processamento", "" + experimento.getListVariaveisResposta().get(0).getProcessamento());
+				parameters2.put(":memoria", "" + experimento.getListVariaveisResposta().get(0).getMemoria());
+				parameters2.put(":etapa", experimento.getEtapa());
+				parameters2.put(":plataforma", experimento.getPlataforma());
+				provider.execute(replaceParameters(query3, parameters2));
+				provider.closeConnection();			
+				
+			}
+
 			
 		} catch (SQLException e) {
-			
 			e.printStackTrace();
 		}
 		
@@ -194,8 +267,8 @@ public class Main {
 		return q;
 	}
 	
-	public static void generateCombinacoes() {
-		String[] status = new String[] { "A", "B", "C" }; //aqui pode ser qualquer objeto que implemente Comparable
+	public static List<List<String>> generateCombinacoes(String[]fatores) {
+		String[] status = fatores; //aqui pode ser qualquer objeto que implemente Comparable
 		List<SortedSet<Comparable>> allCombList = new ArrayList<SortedSet<Comparable>>(); //aqui vai ficar a resposta
 		for (String nstatus : status) {
 			allCombList.add(new TreeSet<Comparable>(Arrays.asList(nstatus))); //insiro a combinação "1 a 1" de cada item
@@ -223,7 +296,25 @@ public class Main {
 				return sizeComp;
 			}
 		});
+		
+		List<List<String>>list = new ArrayList<>();
+		
+				for (SortedSet<Comparable> sortedSet : allCombList) {//[[A], [B], [C], [A, B], [A, C], [B, C], [A, B, C]]
+					
+					ArrayList<String> li =new ArrayList<>();
+					
+					for (Comparable comparable : sortedSet) { //[A]
+						
+						li.add((String)comparable);
+					
+					}
+					list.add(li);
+				}
+				
+				
+				System.out.println();
 		System.out.println(allCombList);
+		return list;
 	}
 
 

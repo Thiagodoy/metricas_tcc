@@ -14,7 +14,7 @@ public class SqliteProvider {
 	private void createConnection(){
 		try {
 			Class.forName("org.sqlite.JDBC");			
-			connection = DriverManager.getConnection("jdbc:sqlite:C:/Users/thiagog/Desktop/tcc_metricas.db3");
+			connection = DriverManager.getConnection("jdbc:sqlite:/home/thiago/Documents/projeto_tcc/metricas_tcc/sqlite/tcc_metricas.db3");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
@@ -30,6 +30,17 @@ public class SqliteProvider {
 		this.createConnection();
 		this.statement = connection.createStatement();
 		return statement.execute(query);
+	}
+	public void closeConnection() throws SQLException{
+		
+		if(!this.statement.isClosed()){
+			this.statement.close();
+		}
+			
+		if(!this.connection.isClosed()){
+			this.connection.close();
+		}
+		
 	}
 
 }
