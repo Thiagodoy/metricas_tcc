@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,11 +35,11 @@ public class Main {
 		//generateMediaExperimentos("");
 		//generateMatriz(3, 2);
 		//generateCombinacoes(fatores);
-		geraQns(fatores, generateMatriz(3, 2));
+		geraQns(fatores, generateMatriz(3, 2),"SQLITE");
 		
 	}
 	
-	private static void geraQns(String[] fatores, long[][] matriz){
+	private static void geraQns(String[] fatores, long[][] matriz, String etapa){
 		
 		List<List<String>> combinacoes =  generateCombinacoes(fatores);		
 		Map<String,VariaveisResposta>mapVariaveisRespostasMedias = new TreeMap<>();
@@ -63,9 +64,10 @@ public class Main {
 		
 		
 		
-		Map<String,Double>tempo = new TreeMap<>();
-		Map<String,Double>processamento = new TreeMap<>();
-		Map<String,Double>memoria = new TreeMap<>();
+		Map<String,Double>tempo = new LinkedHashMap<>();
+		Map<String,Double>processamento = new LinkedHashMap<>();
+		Map<String,Double>memoria = new LinkedHashMap<>();
+		Map<String,String>obs = new LinkedHashMap<>();;
 		
 		for (String key : mapVariaveisRespostasMedias.keySet()) {
 			
@@ -78,17 +80,25 @@ public class Main {
 					memoria.put(list.get(0) + " - "+ key +" - memoria" , matriz[index - 1][indexFator1] * mapVariaveisRespostasMedias.get(key).getMemoria() );
 					processamento.put(list.get(0) + " - "+ key +" - processamento" , matriz[index - 1][indexFator1] * mapVariaveisRespostasMedias.get(key).getProcessamento() );
 					
-					
+					if(!obs.containsKey(list.get(0)))
+						obs.put(list.get(0), key);
+					else
+						obs.put(list.get(0),obs.get(list.get(0)) + "," + key);
+						
 				}
 				if(list.size() == 2){
 					int indexFator1 = Arrays.asList(fatores).indexOf(list.get(0));
 					int indexFator2 = Arrays.asList(fatores).indexOf(list.get(1));
 					
 					String keyNew = list.get(0) + list.get(1) + " - " + key; 
-					tempo.put(keyNew + " - tempo" , (double) (matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2]  * mapVariaveisRespostasMedias.get(key).getTempo()) );
-					memoria.put(keyNew + " - memoria" , matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * mapVariaveisRespostasMedias.get(key).getMemoria() );
-					processamento.put(keyNew + " - processamento" , matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * mapVariaveisRespostasMedias.get(key).getProcessamento() );
+					tempo.put(keyNew + " - tempo" , (double) (matriz[index - 1][indexFator1] * matriz[index - 1][indexFator2]  * mapVariaveisRespostasMedias.get(key).getTempo()) );
+					memoria.put(keyNew + " - memoria" , matriz[index - 1][indexFator1] * matriz[index - 1][indexFator2] * mapVariaveisRespostasMedias.get(key).getMemoria() );
+					processamento.put(keyNew + " - processamento" , matriz[index - 1][indexFator1] * matriz[index - 1][indexFator2] * mapVariaveisRespostasMedias.get(key).getProcessamento() );
 					
+					if(!obs.containsKey(list.get(0) + list.get(1)))
+						obs.put(list.get(0) + list.get(1), key);
+					else
+						obs.put(list.get(0) + list.get(1),obs.get(list.get(0) + list.get(1)) + "," + key);
 				}
 				if(list.size() == 3){
 					int indexFator1 = Arrays.asList(fatores).indexOf(list.get(0));
@@ -97,13 +107,63 @@ public class Main {
 					
 					String keyNew = list.get(0) + list.get(1) + list.get(2) + " - " + key;					
 					
-					tempo.put(keyNew + " - tempo" , (double) (matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * matriz[index + 1][indexFator3]  * mapVariaveisRespostasMedias.get(key).getTempo()) );
-					memoria.put(keyNew + " - memoria" , matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * matriz[index + 1][indexFator3] * mapVariaveisRespostasMedias.get(key).getMemoria() );
-					processamento.put(keyNew + " - processamento" , matriz[index - 1][indexFator1] * matriz[index + 1][indexFator2] * matriz[index + 1][indexFator3] * mapVariaveisRespostasMedias.get(key).getProcessamento() );
+					tempo.put(keyNew + " - tempo" , (double) (matriz[index - 1][indexFator1] * matriz[index - 1][indexFator2] * matriz[index - 1][indexFator3]  * mapVariaveisRespostasMedias.get(key).getTempo()) );
+					memoria.put(keyNew + " - memoria" , matriz[index - 1][indexFator1] * matriz[index - 1][indexFator2] * matriz[index - 1][indexFator3] * mapVariaveisRespostasMedias.get(key).getMemoria() );
+					processamento.put(keyNew + " - processamento" , matriz[index - 1][indexFator1] * matriz[index - 1][indexFator2] * matriz[index - 1][indexFator3] * mapVariaveisRespostasMedias.get(key).getProcessamento() );
+				
+
+					if(!obs.containsKey(list.get(0) + list.get(1) + list.get(2)))
+						obs.put(list.get(0) + list.get(1) + list.get(2), key);
+					else
+						obs.put(list.get(0) + list.get(1) + list.get(2),obs.get(list.get(0) + list.get(1) + list.get(2)) + "," + key);	
 					
 				}
 			}		
 			
+		}
+		
+		
+		String query ="INSERT INTO OBSERVACOES VALUES(':observacao',':etapa',':variavel',:y1,:y2,:y3,:y4,:y5,:y6,:y7,:y8,:resultado)";
+		
+		//C - y4 - tempo
+		
+		String[]variaveis = new String[]{"tempo","processamento","memoria"};
+		
+		
+		for (String string : variaveis) {
+			for ( String s : obs.keySet()) {
+				
+				Map<String,Double>mapCurrent = string.equals("tempo") ? tempo : string.equals("processamento")? processamento : memoria;
+				Map<String,String>parameters = new HashMap<>();
+				parameters.put(":y1","" + mapCurrent.get(s + " - y1 - " + string));
+				parameters.put(":y2","" + mapCurrent.get(s + " - y2 - " + string));
+				parameters.put(":y3","" + mapCurrent.get(s + " - y3 - " + string));
+				parameters.put(":y4","" + mapCurrent.get(s + " - y4 - " + string));
+				parameters.put(":y5","" + 0d);//mapCurrent.get(s + " - y5 - " + string));
+				parameters.put(":y6","" + 0d);//mapCurrent.get(s + " - y6 - " + string));
+				parameters.put(":y7","" + 0d);// mapCurrent.get(s + " - y7 - " + string));
+				parameters.put(":y8","" + 0d);//mapCurrent.get(s + " - y8 - " + string));	
+				
+				double resultado = 0;
+				int count = 1;
+				for ( String ss : mapCurrent.keySet()){
+					
+					resultado += mapCurrent.containsKey(s + " - y"+ count +" - " + string) ? mapCurrent.get(s + " - y"+ count +" - " + string) : 0;
+					count++;
+				}	
+				
+				parameters.put(":etapa","" + etapa);
+				parameters.put(":resultado","" + resultado);
+				parameters.put(":observacao",s);
+				parameters.put(":variavel",string);
+				
+				try {
+					provider.execute(replaceParameters(new StringBuilder(query), parameters));
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				
+			}
 		}
 		
 		System.out.println(tempo);

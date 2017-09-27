@@ -14,7 +14,7 @@ public class SqliteProvider {
 	private void createConnection(){
 		try {
 			Class.forName("org.sqlite.JDBC");			
-			connection = DriverManager.getConnection("jdbc:sqlite:/home/thiago/Documents/projeto_tcc/metricas_tcc/sqlite/tcc_metricas.db3");
+			connection = DriverManager.getConnection("jdbc:sqlite:C:\\dev\\Tcc\\metricas_tcc\\sqlite\\tcc_metricas.db3");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
