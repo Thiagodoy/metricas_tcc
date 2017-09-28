@@ -9,37 +9,36 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 public class Main {
 
 	static SqliteProvider provider;
+	static final String[]VARIAVEIS = new String[]{"tempo","processamento","memoria"};
 	
 	static{
 		 provider = new SqliteProvider();
 	} 
-	public static void main(String[] args) {		
-		// TODO Auto-generated method stub
-
-//		//ETAPA 1 SQLITE
+	public static void main(String[] args) throws SQLException {
+		
+		
+		//ETAPA 1 SQLITE
 		String[] fatores = new String[]{"A","B","C"};
-//		String[] niveis = new String[]{"-1","1"};
-//		
-//		
-		//generateMediaExperimentos("");
-		//generateMatriz(3, 2);
-		//generateCombinacoes(fatores);
-		geraQns(fatores, generateMatriz(3, 2),"SQLITE");
+		generateMediaExperimentos("SQLITE");
+		geraQns(fatores, generateMatriz(3, 2),"SQLITE",3,2);		
+		gerarSomaQuadradoEinfluencias("SQLITE",3,2);
 		
 	}
 	
-	private static void geraQns(String[] fatores, long[][] matriz, String etapa){
+	private static void geraQns(String[] fatores, long[][] matriz, String etapa,int fator,int niveil){
 		
 		List<List<String>> combinacoes =  generateCombinacoes(fatores);		
 		Map<String,VariaveisResposta>mapVariaveisRespostasMedias = new TreeMap<>();
@@ -125,8 +124,6 @@ public class Main {
 		
 		String query ="INSERT INTO OBSERVACOES VALUES(':observacao',':etapa',':variavel',:y1,:y2,:y3,:y4,:y5,:y6,:y7,:y8,:resultado)";
 		
-		//C - y4 - tempo
-		
 		String[]variaveis = new String[]{"tempo","processamento","memoria"};
 		
 		
@@ -135,14 +132,14 @@ public class Main {
 				
 				Map<String,Double>mapCurrent = string.equals("tempo") ? tempo : string.equals("processamento")? processamento : memoria;
 				Map<String,String>parameters = new HashMap<>();
-				parameters.put(":y1","" + mapCurrent.get(s + " - y1 - " + string));
-				parameters.put(":y2","" + mapCurrent.get(s + " - y2 - " + string));
-				parameters.put(":y3","" + mapCurrent.get(s + " - y3 - " + string));
-				parameters.put(":y4","" + mapCurrent.get(s + " - y4 - " + string));
-				parameters.put(":y5","" + 0d);//mapCurrent.get(s + " - y5 - " + string));
-				parameters.put(":y6","" + 0d);//mapCurrent.get(s + " - y6 - " + string));
-				parameters.put(":y7","" + 0d);// mapCurrent.get(s + " - y7 - " + string));
-				parameters.put(":y8","" + 0d);//mapCurrent.get(s + " - y8 - " + string));	
+				parameters.put(":y1","" + (mapCurrent.containsKey(s + " - y1 - " + string) ? mapCurrent.get(s + " - y1 - " + string) : 0));
+				parameters.put(":y2","" + (mapCurrent.containsKey(s + " - y2 - " + string) ? mapCurrent.get(s + " - y2 - " + string) : 0));
+				parameters.put(":y3","" + (mapCurrent.containsKey(s + " - y3 - " + string) ? mapCurrent.get(s + " - y3 - " + string) : 0));
+				parameters.put(":y4","" + (mapCurrent.containsKey(s + " - y4 - " + string) ? mapCurrent.get(s + " - y4 - " + string) : 0));
+				parameters.put(":y5","" + (mapCurrent.containsKey(s + " - y5 - " + string) ? mapCurrent.get(s + " - y5 - " + string) : 0));
+				parameters.put(":y6","" + (mapCurrent.containsKey(s + " - y6 - " + string) ? mapCurrent.get(s + " - y6 - " + string) : 0));
+				parameters.put(":y7","" + (mapCurrent.containsKey(s + " - y7 - " + string) ? mapCurrent.get(s + " - y7 - " + string) : 0));
+				parameters.put(":y8","" + (mapCurrent.containsKey(s + " - y8 - " + string) ? mapCurrent.get(s + " - y8 - " + string) : 0));
 				
 				double resultado = 0;
 				int count = 1;
@@ -151,6 +148,8 @@ public class Main {
 					resultado += mapCurrent.containsKey(s + " - y"+ count +" - " + string) ? mapCurrent.get(s + " - y"+ count +" - " + string) : 0;
 					count++;
 				}	
+				
+				resultado = (1/Math.pow(niveil, fator)) * resultado;
 				
 				parameters.put(":etapa","" + etapa);
 				parameters.put(":resultado","" + resultado);
@@ -169,7 +168,67 @@ public class Main {
 		System.out.println(tempo);
 		System.out.println(processamento);
 		System.out.println(memoria);
-	}	
+	}
+	
+	private static void gerarSomaQuadradoEinfluencias(String etapa, int fatores, int niveis) throws SQLException{
+		
+		
+		String query = "select observacao, resultado from observacoes where etapa =':etapa' and variavel = ':variavel'";
+		Map<String, Double>mapSst = new HashMap<>();
+		Map<String, Double>mapSstObservacao = new LinkedHashMap<>();
+		for (String variavel : VARIAVEIS) {
+
+			Map<String,String>parameters = new HashMap<>();
+			parameters.put(":etapa", etapa);
+			parameters.put(":variavel", variavel);			
+			
+				ResultSet resultSet = provider.executeQuery(replaceParameters(new StringBuilder(query), parameters));
+				double sst = 0d; //SOMA TOTAL DOS QUADRADOS				
+				while(resultSet.next()){
+					sst += Math.pow(resultSet.getDouble(2), 2);
+					String k = "SS_" +  resultSet.getString(1) + "_" + etapa + "_" + variavel; //SS_A_SQLITE_tempo
+					mapSstObservacao.put(k, Math.pow(niveis, fatores) * Math.pow(resultSet.getDouble(2),2));
+				}				
+				mapSst.put("SST" + variavel + etapa, Math.pow(niveis, fatores)*sst);//SSTtempoSQLITE
+				provider.closeConnection();
+				
+				
+				
+		}			
+		
+		Set<String> setTempo = mapSstObservacao.keySet().stream().filter(t-> t.contains("tempo")).collect(Collectors.toCollection(LinkedHashSet::new));			
+			
+			for(String key : setTempo){
+			
+				String[] keys = key.split("_");
+				
+				String query1 = " insert into  influencia values (':fator',:memoria,:processamento,:tempo,':etapa')";
+			
+				//SS_A_SQLITE_tempo
+				double memoria = mapSstObservacao.get("SS_"+ keys[1] +"_"+ keys[2] +"_memoria")/ mapSst.get("SST" + "memoria" + keys[2]);
+				if(Double.isNaN(memoria));
+					memoria = 0;
+					
+				double tempo = mapSstObservacao.get(key)/ mapSst.get("SST"  + "tempo" + keys[2]);
+				if(Double.isNaN(tempo));
+					tempo = 0;
+					
+				double processamento = mapSstObservacao.get("SS_"+ keys[1] +"_"+ keys[2] +"_processamento")/ mapSst.get("SST"  + "processamento" + keys[2]);
+				
+				if(Double.isNaN(processamento));
+					processamento = 0;
+			
+				Map<String,String>parameters1 = new HashMap<>();
+				parameters1.put(":fator",keys[1]);
+				parameters1.put(":memoria","" + memoria);
+				parameters1.put(":tempo","" + tempo);
+				parameters1.put(":processamento","" + processamento);
+				parameters1.put(":etapa",keys[2]);
+				provider.execute(replaceParameters(new StringBuilder(query1), parameters1));
+				provider.closeConnection();
+				
+		}			
+	}
 	
 	private static long[][]  generateMatriz(int fatores, int niveis){
 		
@@ -204,14 +263,11 @@ public class Main {
 							 matrizRegressao[i][c] = -1;
 							 ++count;
 							 if(count == 0)
-								 count = (long) Math.abs((linhas/4));
-							 
-							
+								 count = (long) Math.abs((linhas/4));							
 						 }
 					}
 					
-					continue y; 
-					
+					continue y; 					
 				 }
 				 if(c == 2){
 					 long count = (long) Math.abs((linhas/6));					 
@@ -228,17 +284,14 @@ public class Main {
 							 matrizRegressao[i][c] = -1;
 							 ++count;
 							 if(count == 0)
-								 count = (long) Math.abs((linhas/6));
-							 
-							
+								 count = (long) Math.abs((linhas/6));						
 						 }
 					}
 					 print(linhas, colunas, matrizRegressao);
 					continue y; 
 				 }
 			}	
-		}
-		
+		}		
 		return matrizRegressao;
 		
 	}
@@ -260,7 +313,7 @@ public class Main {
 		StringBuilder query2 = new StringBuilder();
 		StringBuilder query3 = new StringBuilder();
 		
-		query.append("select experimento, quantidade, tipo, etapa, plataforma, avg(tempo) as \"tempo(ms)\", min(time_inicio),max(time_fim)  from EXPERIMENTOS group by experimento, quantidade, tipo, etapa, plataforma;");
+		query.append("select experimento, quantidade, tipo, etapa, plataforma, avg(tempo) as \"tempo(ms)\", min(time_inicio),max(time_fim)  from EXPERIMENTOS where etapa =':etapa'group by experimento, quantidade, tipo, etapa, plataforma;");
 		query2.append("select avg(app_cpu_usado) as processamento,avg(memoria_usada_kb) as memoria from variaveis_resposta where time >= :inicio and time <= :fim and plataforma = ':plataforma'");		
 		query3.append("INSERT INTO MEDIA_VARIAVEIS_RESPOSTA VALUES (':experimento',:tempo,:processamento,:memoria,':etapa',':plataforma');");
 		
@@ -268,11 +321,10 @@ public class Main {
 		try {
 			
 			
-			List<Experimento> listExperimentos = new ArrayList<>();
-			
-			
-			
-			ResultSet result = provider.executeQuery(query.toString());
+			List<Experimento> listExperimentos = new ArrayList<>();	
+			Map<String,String>parameters = new HashMap<>();
+			parameters.put(":etapa",etapa);
+			ResultSet result = provider.executeQuery(replaceParameters(query, parameters));
 			
 			while(result.next()){
 				listExperimentos.add(new Experimento(result.getString(1), result.getLong(2), result.getString(3), result.getString(4), result.getString(5), result.getLong(6), result.getLong(7), result.getLong(8)));
@@ -281,10 +333,10 @@ public class Main {
 			
 			for (Experimento experimento : listExperimentos) {
 				
-				Map<String,String> parameters = new HashMap<>();
-				parameters.put(":inicio", "" + experimento.getMinTempo());
-				parameters.put(":fim", "" + experimento.getMaxTempo());
-				parameters.put(":plataforma",experimento.getPlataforma());	
+				Map<String,String> parameters1 = new HashMap<>();
+				parameters1.put(":inicio", "" + experimento.getMinTempo());
+				parameters1.put(":fim", "" + experimento.getMaxTempo());
+				parameters1.put(":plataforma",experimento.getPlataforma());	
 				
 				ResultSet resultSet = provider.executeQuery(replaceParameters(query2, parameters));
 				List<VariaveisResposta> listVariavesResposta = new ArrayList<>();
@@ -305,11 +357,8 @@ public class Main {
 				parameters2.put(":etapa", experimento.getEtapa());
 				parameters2.put(":plataforma", experimento.getPlataforma());
 				provider.execute(replaceParameters(query3, parameters2));
-				provider.closeConnection();			
-				
-			}
-
-			
+				provider.closeConnection();				
+			}			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -327,6 +376,7 @@ public class Main {
 		return q;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public static List<List<String>> generateCombinacoes(String[]fatores) {
 		String[] status = fatores; //aqui pode ser qualquer objeto que implemente Comparable
 		List<SortedSet<Comparable>> allCombList = new ArrayList<SortedSet<Comparable>>(); //aqui vai ficar a resposta
@@ -344,6 +394,7 @@ public class Main {
 			}
 		}
 		Collections.sort(allCombList, new Comparator<SortedSet<Comparable>>() { //aqui só para organizar a saída de modo "bonitinho"
+			@SuppressWarnings("unchecked")
 			public int compare(SortedSet<Comparable> o1, SortedSet<Comparable> o2) {
 				int sizeComp = o1.size() - o2.size();
 				if (sizeComp == 0) {
@@ -359,20 +410,15 @@ public class Main {
 		
 		List<List<String>>list = new ArrayList<>();
 		
-				for (SortedSet<Comparable> sortedSet : allCombList) {//[[A], [B], [C], [A, B], [A, C], [B, C], [A, B, C]]
-					
-					ArrayList<String> li =new ArrayList<>();
-					
-					for (Comparable comparable : sortedSet) { //[A]
-						
-						li.add((String)comparable);
-					
+				for (SortedSet<Comparable> sortedSet : allCombList) {//[[A], [B], [C], [A, B], [A, C], [B, C], [A, B, C]]					
+					ArrayList<String> li =new ArrayList<>();					
+					for (Comparable comparable : sortedSet) { //[A]						
+						li.add((String)comparable);					
 					}
 					list.add(li);
-				}
+				}		
 				
-				
-				System.out.println();
+		System.out.println();
 		System.out.println(allCombList);
 		return list;
 	}
