@@ -59,14 +59,13 @@ public class Main {
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
-		
+		}		
 		
 		
 		Map<String,Double>tempo = new LinkedHashMap<>();
 		Map<String,Double>processamento = new LinkedHashMap<>();
 		Map<String,Double>memoria = new LinkedHashMap<>();
-		Map<String,String>obs = new LinkedHashMap<>();;
+		Map<String,String>obs = new LinkedHashMap<>();
 		
 		for (String key : mapVariaveisRespostasMedias.keySet()) {
 			
