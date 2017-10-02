@@ -205,16 +205,16 @@ public class Main {
 			
 				//SS_A_SQLITE_tempo
 				double memoria = mapSstObservacao.get("SS_"+ keys[1] +"_"+ keys[2] +"_memoria")/ mapSst.get("SST" + "memoria" + keys[2]);
-				if(Double.isNaN(memoria));
+				if(Double.isNaN(memoria))
 					memoria = 0;
 					
 				double tempo = mapSstObservacao.get(key)/ mapSst.get("SST"  + "tempo" + keys[2]);
-				if(Double.isNaN(tempo));
+				if(Double.isNaN(tempo))
 					tempo = 0;
 					
 				double processamento = mapSstObservacao.get("SS_"+ keys[1] +"_"+ keys[2] +"_processamento")/ mapSst.get("SST"  + "processamento" + keys[2]);
 				
-				if(Double.isNaN(processamento));
+				if(Double.isNaN(processamento))
 					processamento = 0;
 			
 				Map<String,String>parameters1 = new HashMap<>();
@@ -312,7 +312,7 @@ public class Main {
 		StringBuilder query2 = new StringBuilder();
 		StringBuilder query3 = new StringBuilder();
 		
-		query.append("select experimento, quantidade, tipo, etapa, plataforma, avg(tempo) as \"tempo(ms)\", min(time_inicio),max(time_fim)  from EXPERIMENTOS where etapa =':etapa'group by experimento, quantidade, tipo, etapa, plataforma;");
+		query.append("select experimento, quantidade, tipo, etapa, plataforma, avg(tempo) as \"tempo(ms)\", min(time_inicio),max(time_fim)  from EXPERIMENTOS where etapa =':etapa' group by experimento, quantidade, tipo, etapa, plataforma;");
 		query2.append("select avg(app_cpu_usado) as processamento,avg(memoria_usada_kb) as memoria from variaveis_resposta where time >= :inicio and time <= :fim and plataforma = ':plataforma'");		
 		query3.append("INSERT INTO MEDIA_VARIAVEIS_RESPOSTA VALUES (':experimento',:tempo,:processamento,:memoria,':etapa',':plataforma');");
 		
@@ -337,7 +337,7 @@ public class Main {
 				parameters1.put(":fim", "" + experimento.getMaxTempo());
 				parameters1.put(":plataforma",experimento.getPlataforma());	
 				
-				ResultSet resultSet = provider.executeQuery(replaceParameters(query2, parameters));
+				ResultSet resultSet = provider.executeQuery(replaceParameters(query2, parameters1));
 				List<VariaveisResposta> listVariavesResposta = new ArrayList<>();
 				while(resultSet.next()){
 					listVariavesResposta.add(new VariaveisResposta(resultSet.getDouble(1), resultSet.getDouble(2),experimento.getTempo()));
