@@ -8,14 +8,14 @@ public class Experimento {
 	String tipo;
 	String etapa;
 	String plataforma;
-	long tempo;
+	double tempo;
 	long minTempo;
 	long maxTempo;
 	List<VariaveisResposta>listVariaveisResposta;
 	
 	
 	
-	public Experimento(String experimento, long quantidade, String tipo, String etapa, String plataforma, long tempo,
+	public Experimento(String experimento, long quantidade, String tipo, String etapa, String plataforma, double tempo,
 			long minTempo, long maxTempo) {
 		super();
 		this.experimento = experimento;
@@ -75,10 +75,10 @@ public class Experimento {
 	public void setPlataforma(String plataforma) {
 		this.plataforma = plataforma;
 	}
-	public long getTempo() {
+	public double getTempo() {
 		return tempo;
 	}
-	public void setTempo(long tempo) {
+	public void setTempo(double tempo) {
 		this.tempo = tempo;
 	}
 	public long getMinTempo() {

@@ -3,11 +3,11 @@ package tcc_metricas;
 public class VariaveisResposta {
 	double processamento;
 	double memoria;
-	long tempo;
+	double tempo;
 	
 	
 	
-	public VariaveisResposta(double processamento, double memoria, long tempo) {
+	public VariaveisResposta(double processamento, double memoria, double tempo) {
 		super();
 		this.processamento = processamento;
 		this.memoria = memoria;
@@ -26,10 +26,10 @@ public class VariaveisResposta {
 	public void setMemoria(double memoria) {
 		this.memoria = memoria;
 	}
-	public long getTempo() {
+	public double getTempo() {
 		return tempo;
 	}
-	public void setTempo(long tempo) {
+	public void setTempo(double tempo) {
 		this.tempo = tempo;
 	}
 	

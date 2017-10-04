@@ -129,7 +129,9 @@ public class Main {
 		for (String string : variaveis) {
 			for ( String s : obs.keySet()) {
 				
-				Map<String,Double>mapCurrent = string.equals("tempo") ? tempo : string.equals("processamento")? processamento : memoria;
+				Map<String,Double>mapCurrent = string.equals("tempo") ? tempo : string.equals("processamento")? processamento : memoria;			
+				
+				
 				Map<String,String>parameters = new HashMap<>();
 				parameters.put(":y1","" + (mapCurrent.containsKey(s + " - y1 - " + string) ? mapCurrent.get(s + " - y1 - " + string) : 0));
 				parameters.put(":y2","" + (mapCurrent.containsKey(s + " - y2 - " + string) ? mapCurrent.get(s + " - y2 - " + string) : 0));
@@ -340,7 +342,7 @@ public class Main {
 				ResultSet resultSet = provider.executeQuery(replaceParameters(query2, parameters1));
 				List<VariaveisResposta> listVariavesResposta = new ArrayList<>();
 				while(resultSet.next()){
-					listVariavesResposta.add(new VariaveisResposta(resultSet.getDouble(1), resultSet.getDouble(2),experimento.getTempo()));
+					listVariavesResposta.add(new VariaveisResposta(resultSet.getDouble(1)/100, resultSet.getDouble(2),experimento.getTempo()/1000));
 				}
 				experimento.setListVariaveisResposta(listVariavesResposta);
 				provider.closeConnection();
@@ -350,7 +352,7 @@ public class Main {
 				
 				Map<String,String> parameters2 = new HashMap<>();
 				parameters2.put(":experimento", "" + experimento.getExperimento());
-				parameters2.put(":tempo", "" + experimento.getTempo());
+				parameters2.put(":tempo", "" + experimento.getListVariaveisResposta().get(0).getTempo());
 				parameters2.put(":processamento", "" + experimento.getListVariaveisResposta().get(0).getProcessamento());
 				parameters2.put(":memoria", "" + experimento.getListVariaveisResposta().get(0).getMemoria());
 				parameters2.put(":etapa", experimento.getEtapa());
