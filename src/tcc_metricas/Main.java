@@ -2,6 +2,7 @@ package tcc_metricas;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,11 +31,22 @@ public class Main {
 	public static void main(String[] args) throws SQLException {
 		
 		
+		generateMediaExperimento("SQLITE");
+		generateMediaExperimento("SEARCHFILE");
+		
+		
+		
 		//ETAPA 1 SQLITE
 		String[] fatores = new String[]{"A","B","C"};
 		generateMediaExperimentos("SQLITE");
 		geraQns(fatores, generateMatriz(3, 2),"SQLITE",3,2);		
 		gerarSomaQuadradoEinfluencias("SQLITE",3,2);
+		
+		//ETAPA 2 SEARCHFILE
+		String[] fatores2 = new String[]{"A","B"};
+		generateMediaExperimentos("SEARCHFILE");
+		geraQns(fatores2, generateMatriz(2, 2),"SEARCHFILE",2,2);		
+		gerarSomaQuadradoEinfluencias("SEARCHFILE",2,2);
 		
 	}
 	
@@ -47,7 +59,7 @@ public class Main {
 			
 			String query ="select experimento, tempo, processamento, memoria from media_variaveis_resposta where etapa = ':etapa'";
 			Map<String,String> parameters = new HashMap<>();
-			parameters.put(":etapa", "SQLITE");
+			parameters.put(":etapa", etapa);
 			ResultSet resultSet = provider.executeQuery(replaceParameters(new StringBuilder(query), parameters));			
 			
 			while(resultSet.next()){				
@@ -125,22 +137,26 @@ public class Main {
 		
 		String[]variaveis = new String[]{"tempo","processamento","memoria"};
 		
+		DecimalFormat df = new DecimalFormat();
+		df.setMaximumFractionDigits(5);		
 		
 		for (String string : variaveis) {
 			for ( String s : obs.keySet()) {
 				
 				Map<String,Double>mapCurrent = string.equals("tempo") ? tempo : string.equals("processamento")? processamento : memoria;			
 				
+
+				
 				
 				Map<String,String>parameters = new HashMap<>();
-				parameters.put(":y1","" + (mapCurrent.containsKey(s + " - y1 - " + string) ? mapCurrent.get(s + " - y1 - " + string) : 0));
-				parameters.put(":y2","" + (mapCurrent.containsKey(s + " - y2 - " + string) ? mapCurrent.get(s + " - y2 - " + string) : 0));
-				parameters.put(":y3","" + (mapCurrent.containsKey(s + " - y3 - " + string) ? mapCurrent.get(s + " - y3 - " + string) : 0));
-				parameters.put(":y4","" + (mapCurrent.containsKey(s + " - y4 - " + string) ? mapCurrent.get(s + " - y4 - " + string) : 0));
-				parameters.put(":y5","" + (mapCurrent.containsKey(s + " - y5 - " + string) ? mapCurrent.get(s + " - y5 - " + string) : 0));
-				parameters.put(":y6","" + (mapCurrent.containsKey(s + " - y6 - " + string) ? mapCurrent.get(s + " - y6 - " + string) : 0));
-				parameters.put(":y7","" + (mapCurrent.containsKey(s + " - y7 - " + string) ? mapCurrent.get(s + " - y7 - " + string) : 0));
-				parameters.put(":y8","" + (mapCurrent.containsKey(s + " - y8 - " + string) ? mapCurrent.get(s + " - y8 - " + string) : 0));
+				parameters.put(":y1","" + (mapCurrent.containsKey(s + " - y1 - " + string) ? df.format(mapCurrent.get(s + " - y1 - " + string)) : 0));
+				parameters.put(":y2","" + (mapCurrent.containsKey(s + " - y2 - " + string) ? df.format(mapCurrent.get(s + " - y2 - " + string)) : 0));
+				parameters.put(":y3","" + (mapCurrent.containsKey(s + " - y3 - " + string) ? df.format(mapCurrent.get(s + " - y3 - " + string)) : 0));
+				parameters.put(":y4","" + (mapCurrent.containsKey(s + " - y4 - " + string) ? df.format(mapCurrent.get(s + " - y4 - " + string)): 0));
+				parameters.put(":y5","" + (mapCurrent.containsKey(s + " - y5 - " + string) ? df.format(mapCurrent.get(s + " - y5 - " + string)) : 0));
+				parameters.put(":y6","" + (mapCurrent.containsKey(s + " - y6 - " + string) ? df.format(mapCurrent.get(s + " - y6 - " + string)) : 0));
+				parameters.put(":y7","" + (mapCurrent.containsKey(s + " - y7 - " + string) ? df.format(mapCurrent.get(s + " - y7 - " + string)): 0));
+				parameters.put(":y8","" + (mapCurrent.containsKey(s + " - y8 - " + string) ? df.format(mapCurrent.get(s + " - y8 - " + string)) : 0));
 				
 				double resultado = 0;
 				int count = 1;
@@ -153,7 +169,7 @@ public class Main {
 				resultado = (1/Math.pow(niveil, fator)) * resultado;
 				
 				parameters.put(":etapa","" + etapa);
-				parameters.put(":resultado","" + resultado);
+				parameters.put(":resultado","" + df.format(resultado));
 				parameters.put(":observacao",s);
 				parameters.put(":variavel",string);
 				
@@ -308,6 +324,76 @@ public class Main {
 	} 
 	
 	
+	private static void generateMediaExperimento(String etapa){
+		
+		
+		String query = "select experimento, execucao, etapa, plataforma, tempo,time_inicio,time_fim from EXPERIMENTOS where etapa =':etapa'";
+		String query2 = "insert into experimento_media values(':experimento',:execucao,:tempo,:processamento,:memoria,':plataforma')";
+		String query3 = "select avg(cpu_usada_percentual) as processamento,avg(memoria_alocada_percentual) as memoria from variaveis_resposta where time >= :inicio and time <= :fim ";
+		
+		Map<String,String>parameters = new HashMap();
+		parameters.put(":etapa", etapa);
+		List<String>list = new ArrayList<>();
+		try {
+			ResultSet resultSet = provider.executeQuery(replaceParameters(new StringBuilder(query), parameters));
+			
+				while(resultSet.next()){
+						long init = resultSet.getLong(6);
+						long end = resultSet.getLong(7);
+						
+						Map<String,String>parameters1 = new HashMap();
+						parameters1.put(":inicio", String.valueOf(init));
+						parameters1.put(":fim", String.valueOf(end));
+						//parameters1.put(":plataforma", resultSet.getString(4));
+						
+						ResultSet resultSet2 = provider.executeQuery(replaceParameters(new StringBuilder(query3), parameters1));
+						
+						
+						double processamento = 0;
+						double memoria = 0;
+						
+						while(resultSet2.next()){
+							 processamento = resultSet2.getDouble(1);
+							 memoria = resultSet2.getDouble(2);						
+						}
+						
+						Map<String,String>parameters2 = new HashMap();
+						parameters2.put(":experimento", resultSet.getString(1));
+						parameters2.put(":execucao", resultSet.getString(2));
+						parameters2.put(":tempo", resultSet.getString(5));
+						parameters2.put(":processamento", String.valueOf(processamento/100));
+						parameters2.put(":memoria", String.valueOf(memoria));
+						parameters2.put(":plataforma", resultSet.getString(3));
+						
+						
+						list.add(replaceParameters(new StringBuilder(query2), parameters2));
+						
+						
+				}
+				
+				provider.closeConnection();
+				
+				for (String string : list) {
+					provider.execute(string);
+				}
+				
+				provider.closeConnection();
+				
+				
+				System.out.println(list.toString());
+			
+			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+	}
+	
+	
 	private static void generateMediaExperimentos(String etapa){
 		
 		StringBuilder query = new StringBuilder();
@@ -315,7 +401,7 @@ public class Main {
 		StringBuilder query3 = new StringBuilder();
 		
 		query.append("select experimento, quantidade, tipo, etapa, plataforma, avg(tempo) as \"tempo(ms)\", min(time_inicio),max(time_fim)  from EXPERIMENTOS where etapa =':etapa' group by experimento, quantidade, tipo, etapa, plataforma;");
-		query2.append("select avg(app_cpu_usado) as processamento,avg(memoria_usada_kb) as memoria from variaveis_resposta where time >= :inicio and time <= :fim and plataforma = ':plataforma'");		
+		query2.append("select avg(cpu_usada_percentual) as processamento,avg(memoria_alocada_percentual) as memoria from variaveis_resposta where time >= :inicio and time <= :fim and plataforma = ':plataforma'");		
 		query3.append("INSERT INTO MEDIA_VARIAVEIS_RESPOSTA VALUES (':experimento',:tempo,:processamento,:memoria,':etapa',':plataforma');");
 		
 		
@@ -374,6 +460,7 @@ public class Main {
 		for(String key: parameters.keySet()){
 			q = q.replace(key, parameters.get(key));
 		}		
+		//System.out.println(q);
 		return q;
 	}
 	
