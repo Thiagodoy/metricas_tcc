@@ -37,10 +37,10 @@ public class Main {
 		
 		
 		//ETAPA 1 SQLITE
-		String[] fatores = new String[]{"A","B","C"};
-		generateMediaExperimentos("SQLITE");
-		geraQns(fatores, generateMatriz(3, 2),"SQLITE",3,2);		
-		gerarSomaQuadradoEinfluencias("SQLITE",3,2);
+//		String[] fatores = new String[]{"A","B","C"};
+//		generateMediaExperimentos("SQLITE");
+//		geraQns(fatores, generateMatriz(3, 2),"SQLITE",3,2);		
+//		gerarSomaQuadradoEinfluencias("SQLITE",3,2);
 		
 		//ETAPA 2 SEARCHFILE
 		String[] fatores2 = new String[]{"A","B"};
@@ -360,7 +360,7 @@ public class Main {
 						Map<String,String>parameters2 = new HashMap();
 						parameters2.put(":experimento", resultSet.getString(1));
 						parameters2.put(":execucao", resultSet.getString(2));
-						parameters2.put(":tempo", resultSet.getString(5));
+						parameters2.put(":tempo", String.valueOf(Long.parseLong(resultSet.getString(5))/1000));
 						parameters2.put(":processamento", String.valueOf(processamento/100));
 						parameters2.put(":memoria", String.valueOf(memoria));
 						parameters2.put(":plataforma", resultSet.getString(3));
